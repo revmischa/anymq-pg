@@ -4,6 +4,7 @@ sub readme_from   { }
 sub auto_set_repository { }
 
 use inc::Module::Install;
+
 name 'AnyMQ-Pg';
 all_from 'lib/AnyMQ/Pg.pm';
 readme_from 'lib/AnyMQ/Pg.pm';
