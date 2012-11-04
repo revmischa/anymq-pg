@@ -27,12 +27,15 @@ sub run_tests {
     my $bus = AnyMQ->new_with_traits(
         traits     => ['Pg'],
         dsn        => 'user=postgres dbname=postgres',
-        on_connect => \&connected,
-        on_error   => \&error,
+        on_connect       => \&connected,
+        on_error         => \&error,
         on_connect_error => \&connect_error,
-        # on_notify => \&got_notification,
     );
     $cv = AE::cv;
+
+    my $topic = $bus->topic('LOLHI');
+    $topic->publish({ blah => 123 });
+
     $cv->recv;
 }
 
@@ -49,7 +52,6 @@ sub connected {
     my $topic = $self->topic('LOLHI');
     $listener = $self->new_listener($topic);
     $listener->poll(\&got_notification);
-    $topic->publish({ blah => 123 });
     $topic->publish({ blah => 123 });
 }
 

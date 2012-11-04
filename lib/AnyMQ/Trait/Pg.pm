@@ -166,9 +166,12 @@ sub _on_connect {
     if ($self->all_channels) {
         $self->_push_listen($_) for $self->all_channels;
     }
-
-    while (my $evt = $self->publish_queue_unshift) {
-        $self->notify(@$evt);
+    
+    my $pub_queue = $self->publish_queue;
+    if ($pub_queue) {
+        foreach my $evt (@$pub_queue) {
+            $self->notify(@$evt);
+        }
     }
 }
 

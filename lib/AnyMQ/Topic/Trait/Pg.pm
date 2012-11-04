@@ -5,7 +5,7 @@ use Any::Moose 'Role';
 has 'publish_to_queues' => (is => 'rw', default => 0);
 
 # publish to a channel
-after 'publish' => sub {
+sub dispatch_messages {
     my ($self, @events) = @_;
 
     my $channel = $self->name;
@@ -14,7 +14,7 @@ after 'publish' => sub {
         my $encoded = $self->bus->encode_event($event) or next;
         $self->bus->notify($channel, $encoded);
     }
-};
+}
 
 # subscribe to a channel
 after 'add_subscriber' => sub {
