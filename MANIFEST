@@ -14,5 +14,6 @@ inc/Test/Requires.pm
 lib/AnyMQ/Pg.pm
 lib/AnyMQ/Topic/Trait/Pg.pm
 lib/AnyMQ/Trait/Pg.pm
+t/pubsub.t
 Makefile.PL
 MANIFEST			This list of files

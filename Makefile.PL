@@ -9,7 +9,6 @@ name 'AnyMQ-Pg';
 all_from 'lib/AnyMQ/Pg.pm';
 readme_from 'lib/AnyMQ/Pg.pm';
 build_requires 'Test::More';
-test_requires 'Test::Requires';
 requires 'Test::More';
 requires 'AnyMQ' => '0.30';
 requires 'JSON';
