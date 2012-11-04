@@ -4,32 +4,33 @@ NAME
 
 ABOUT
     Enables the use of PostgreSQL as a backend for message queueing
-    functionality with L<AnyMQ>.
+    functionality with AnyMQ.
 
     Many people are probably unaware that PostgreSQL has a built-in
     asynchronous publish/subscribe mechanism, but it does.
+
     <http://www.postgresql.org/docs/9.1/interactive/sql-listen.html>
 
 SYNOPSIS
-      my $bus = AnyMQ->new_with_traits(
-          traits     => ['Pg'],
-          dsn        => 'dbname=postgres user=postgres',
-          on_connect => sub { ... },
-          on_error   => sub { ... },
-      );
+        my $bus = AnyMQ->new_with_traits(
+            traits     => ['Pg'],
+            dsn        => 'dbname=postgres user=postgres',
+            on_connect => sub { ... },
+            on_error   => sub { ... },
+        );
 
-      # see AnyMQ docs for usage
-      my $topic = $bus->topic('my_event');
-      my $listen_watcher = $bus->new_listener($topic);
-      $listen_watcher->poll(sub {
-          my ($evt) = @_;
-          warn "Got notified of my_event: " . Dumper($evt);
-      });
-      $topic->publish({ foo => 123 });
-      AE::cv->recv;
+        # see AnyMQ docs for usage
+        my $topic = $bus->topic('my_event');
+        my $listen_watcher = $bus->new_listener($topic);
+        $listen_watcher->poll(sub {
+            my ($evt) = @_;
+            warn "Got notified of my_event: " . Dumper($evt);
+        });
+        $topic->publish({ foo => 123 });
+        AE::cv->recv;
 
 SEE ALSO
-    L<AnyEvent::Pg>, L<Web::Hippie>, L<Web::Hippie::PubSub>
+    AnyEvent::Pg, Web::Hippie, Web::Hippie::PubSub
 
 AUTHOR
     Mischa Spiegelmock, "<revmischa at cpan.org>"

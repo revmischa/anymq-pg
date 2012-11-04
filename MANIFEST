@@ -1,19 +1,4 @@
 .shipit
-inc/Module/Install.pm
-inc/Module/Install/Base.pm
-inc/Module/Install/Can.pm
-inc/Module/Install/Fetch.pm
-inc/Module/Install/Include.pm
-inc/Module/Install/Makefile.pm
-inc/Module/Install/Metadata.pm
-inc/Module/Install/Win32.pm
-inc/Module/Install/WriteAll.pm
-inc/parent.pm
-inc/PerlIO.pm
-inc/Test/Builder.pm
-inc/Test/Builder/IO/Scalar.pm
-inc/Test/Builder/Module.pm
-inc/Test/More.pm
 lib/AnyMQ/Pg.pm
 lib/AnyMQ/Topic/Trait/Pg.pm
 lib/AnyMQ/Trait/Pg.pm
@@ -22,3 +7,4 @@ MANIFEST
 META.yml
 README
 t/pubsub.t
+MANIFEST.SKIP
