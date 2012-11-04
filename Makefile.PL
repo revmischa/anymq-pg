@@ -15,7 +15,7 @@ requires 'AnyMQ' => '0.30';
 requires 'JSON';
 requires 'Try::Tiny';
 requires 'Any::Moose';
-requires 'AnyEvent::Pg' => 0.03;
+requires 'AnyEvent::Pg' => 0.04;
 
 auto_include_deps;
 auto_set_repository;

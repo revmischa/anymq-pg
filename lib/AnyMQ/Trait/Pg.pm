@@ -1,10 +1,10 @@
 package AnyMQ::Trait::Pg;
 
-use 5.010;
+# use 5.010;
 
 use Any::Moose 'Role';
 
-use AnyEvent::Pg 0.03;
+use AnyEvent::Pg 0.04;
 use JSON;
 use Try::Tiny;
 
@@ -17,6 +17,7 @@ has 'dsn' => (
 has '_client' => (
     is => 'ro',
     isa => 'AnyEvent::Pg',
+    lazy => 1, # need to construct client after all param attributes have been created
     builder => '_build_client',
     predicate => '_client_exists',
 );
@@ -60,6 +61,23 @@ has 'is_connected' => (
 
 has '_json' => ( is => 'rw', lazy_build => 1, isa => 'JSON' );
 
+has '_pg_query_watchers' => (
+    is => 'ro',
+    isa => 'ArrayRef',
+    default => sub { [] },
+    traits => [ 'Array' ],
+    handles => {
+        '_pg_query_watcher_push' => 'push',
+    }
+);
+
+sub BUILD {
+    my ($self) = @_;
+    
+    # once everything is set up, we can construct and connect our client object
+    $self->_client;
+}
+
 # JSON codec pack
 sub _build__json {
     my ($self) = @_;
@@ -69,8 +87,9 @@ sub _build__json {
 sub _build_client {
     my ($self) = @_;
 
+    my $dsn = $self->dsn;
     my $pg = AnyEvent::Pg->new(
-        $self->dsn,
+        $dsn,
         on_connect       => sub { $self->_on_connect(@_) },
         on_connect_error => sub { $self->_on_connect_error(@_) },
         on_error         => sub { $self->_on_error(@_) },
@@ -81,20 +100,52 @@ sub _build_client {
 }
 
 sub listen {
-    my ($self, $channel) = @_;
+    my ($self, $channel, %query_opts) = @_;
 
     $self->add_channel($channel);
-    $self->_client->listen($channel) if $self->is_connected;
+    return unless $self->is_connected;
+    
+    $self->_push_listen($channel, %query_opts);
 }
 
+sub _push_listen {
+    my ($self, $channel, %query_opts) = @_;
+    return $self->_push_notif_command('LISTEN', $channel, %query_opts);
+}
+
+sub unlisten {
+    my ($self, $channel, %query_opts) = @_;
+
+    return $self->_push_notif_command('UNLISTEN', $channel, %query_opts);
+}
+
+# publishes notification with $payload on channel
 sub notify {
     my ($self, @rest) = @_;
+    my ($channel, $payload, %query_opts) = @rest;
 
-    if ($self->is_connected) {
-        $self->_client->notify(@rest);
-    } else {
+    unless ($self->is_connected) {
         $self->publish_queue_push(\@rest);
+        return;
     }
+    
+    my $query = 'NOTIFY "' . $self->_client->dbc->escapeString($channel) . '"';
+    $query = join(',', $query, $self->_client->dbc->escapeLiteral($payload)) if $payload;
+    my $qw = $self->_client->push_query(query => $query, %query_opts);
+    $self->_pg_query_watcher_push($qw);
+}
+
+# handles LISTEN/UNLISTEN
+sub _push_notif_command {
+    my ($self, $cmd, $channel, %opts) = @_;
+
+    my $query = $cmd . ' "' . $self->_client->dbc->escapeString($channel) . '"';
+    my $qw = $self->_client->push_query(
+        query => $query,
+        %opts
+    );
+    $self->_pg_query_watcher_push($qw);
+    return $qw;
 }
 
 sub encode_event {
@@ -110,14 +161,14 @@ sub _on_connect {
     my $self = shift;
 
     $self->is_connected(1);
-    $self->on_connect->(@_) if $self->on_connect;
+    $self->on_connect->($self, @_) if $self->on_connect;
 
     if ($self->all_channels) {
-        $self->_client->listen($_) for $self->all_channels;
+        $self->_push_listen($_) for $self->all_channels;
     }
 
     while (my $evt = $self->publish_queue_unshift) {
-        $self->_client->notify(@$evt);
+        $self->notify(@$evt);
     }
 }
 
@@ -135,7 +186,7 @@ sub _on_error {
     my $err = $pg->dbc->errorMessage;
 
     if ($self->on_error) {
-        $self->on_error->(@_);
+        $self->on_error->($self, $err);
     } else {
         warn "AnyMQ::Pg error: $err";
     }
@@ -145,7 +196,6 @@ sub _on_notify {
     my ($self, $pg, $channel, $pid, $payload) = @_;
 
     my $evt;
-
     # assume payload is JSON
     try {
         # try decoding from json

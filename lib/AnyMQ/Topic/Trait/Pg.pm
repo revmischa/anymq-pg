@@ -2,6 +2,8 @@ package AnyMQ::Topic::Trait::Pg;
 
 use Any::Moose 'Role';
 
+has 'publish_to_queues' => (is => 'rw', default => 0);
+
 # publish to a channel
 after 'publish' => sub {
     my ($self, @events) = @_;
