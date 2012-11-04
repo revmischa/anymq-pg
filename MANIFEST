@@ -24,7 +24,5 @@ Makefile.PL
 MANIFEST
 MANIFEST.SKIP
 META.yml
-MYMETA.json
-MYMETA.yml
 README
 t/pubsub.t
