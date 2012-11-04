@@ -1,5 +1,7 @@
 #!/usr/bin/env perl
 
+use strict;
+use warnings;
 use Test::More tests => 3;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
@@ -29,11 +31,15 @@ sub run_tests {
         dsn        => 'user=postgres dbname=postgres',
         on_connect       => \&connected,
         on_error         => \&error,
-        on_connect_error => \&connect_error,
     );
     $cv = AE::cv;
 
+    # listen for events
     my $topic = $bus->topic('LOLHI');
+    $listener = $bus->new_listener($topic);
+    $listener->poll(\&got_notification);
+    
+    # try publishing before we may be connected
     $topic->publish({ blah => 123 });
 
     $cv->recv;
@@ -49,9 +55,8 @@ sub got_notification {
 sub connected {
     my ($self) = @_;
     
+    # publish after we are connected
     my $topic = $self->topic('LOLHI');
-    $listener = $self->new_listener($topic);
-    $listener->poll(\&got_notification);
     $topic->publish({ blah => 123 });
 }
 
@@ -61,9 +66,4 @@ sub error {
     $cv->send;
 }
 
-sub connect_error {
-    my ($self, $err) = @_;
-    warn "Connection error: $err";
-    $cv->send;
-}
 

@@ -8,6 +8,12 @@ use AnyEvent::Pg 0.04;
 use JSON;
 use Try::Tiny;
 
+has 'debug' => (
+    is => 'rw',
+    isa => 'Bool',
+    default => 0,
+);
+
 has 'dsn' => (
     is => 'ro',
     isa => 'Str',
@@ -131,6 +137,7 @@ sub notify {
     
     my $query = 'NOTIFY "' . $self->_client->dbc->escapeString($channel) . '"';
     $query = join(',', $query, $self->_client->dbc->escapeLiteral($payload)) if $payload;
+    warn $query if $self->debug;
     my $qw = $self->_client->push_query(query => $query, %query_opts);
     $self->_pg_query_watcher_push($qw);
 }
@@ -144,6 +151,7 @@ sub _push_notif_command {
         query => $query,
         %opts
     );
+    warn $query if $self->debug;
     $self->_pg_query_watcher_push($qw);
     return $qw;
 }
@@ -161,18 +169,22 @@ sub _on_connect {
     my $self = shift;
 
     $self->is_connected(1);
-    $self->on_connect->($self, @_) if $self->on_connect;
 
+    # subscribe to channels
     if ($self->all_channels) {
         $self->_push_listen($_) for $self->all_channels;
     }
     
+    # publish outstanding notifs
     my $pub_queue = $self->publish_queue;
     if ($pub_queue) {
         foreach my $evt (@$pub_queue) {
             $self->notify(@$evt);
         }
     }
+    
+    # time to call our connect callback
+    $self->on_connect->($self, @_) if $self->on_connect;
 }
 
 sub _on_connect_error {

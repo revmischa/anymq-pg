@@ -4,24 +4,32 @@ NAME
 
 ABOUT
     Enables the use of PostgreSQL as a backend for message queueing
-    functionality.
+    functionality with L<AnyMQ>.
 
-    Most people are probably unaware that PostgreSQL has a built-in
-    asynchronous publish/subscribe mechanism, but it does. Check it out:
+    Many people are probably unaware that PostgreSQL has a built-in
+    asynchronous publish/subscribe mechanism, but it does.
     <http://www.postgresql.org/docs/9.1/interactive/sql-listen.html>
 
 SYNOPSIS
       my $bus = AnyMQ->new_with_traits(
           traits     => ['Pg'],
-          dsn        => 'dbname=mydb',
+          dsn        => 'dbname=postgres user=postgres',
           on_connect => sub { ... },
           on_error   => sub { ... },
       );
 
       # see AnyMQ docs for usage
+      my $topic = $bus->topic('my_event');
+      my $listen_watcher = $bus->new_listener($topic);
+      $listen_watcher->poll(sub {
+          my ($evt) = @_;
+          warn "Got notified of my_event: " . Dumper($evt);
+      });
+      $topic->publish({ foo => 123 });
+      AE::cv->recv;
 
 SEE ALSO
-    AnyEvent::Pg, Web::Hippie, Web::Hippie::PubSub
+    L<AnyEvent::Pg>, L<Web::Hippie>, L<Web::Hippie::PubSub>
 
 AUTHOR
     Mischa Spiegelmock, "<revmischa at cpan.org>"
