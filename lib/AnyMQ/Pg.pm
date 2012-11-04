@@ -15,21 +15,30 @@ our $VERSION = '0.01';
 
 =head1 ABOUT
 
-Enables the use of PostgreSQL as a backend for message queueing functionality.
+Enables the use of PostgreSQL as a backend for message queueing functionality with L<AnyMQ>.
 
-Most people are probably unaware that PostgreSQL has a built-in asynchronous publish/subscribe mechanism, but it does.
-Check it out: L<http://www.postgresql.org/docs/9.1/interactive/sql-listen.html>
+Many people are probably unaware that PostgreSQL has a built-in asynchronous publish/subscribe mechanism, but it does.
+
+L<http://www.postgresql.org/docs/9.1/interactive/sql-listen.html>
 
 =head1 SYNOPSIS
 
-  my $bus = AnyMQ->new_with_traits(
-      traits     => ['Pg'],
-      dsn        => 'dbname=mydb',
-      on_connect => sub { ... },
-      on_error   => sub { ... },
-  );
+    my $bus = AnyMQ->new_with_traits(
+        traits     => ['Pg'],
+        dsn        => 'dbname=postgres user=postgres',
+        on_connect => sub { ... },
+        on_error   => sub { ... },
+    );
 
-  # see AnyMQ docs for usage
+    # see AnyMQ docs for usage
+    my $topic = $bus->topic('my_event');
+    my $listen_watcher = $bus->new_listener($topic);
+    $listen_watcher->poll(sub {
+        my ($evt) = @_;
+        warn "Got notified of my_event: " . Dumper($evt);
+    });
+    $topic->publish({ foo => 123 });
+    AE::cv->recv;
 
 =head1 SEE ALSO
 
